@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ruleta de Alumnos</title>
+    <title>Ruleta de Alumnos Institucional</title>
     <style>
         * {
             box-sizing: border-box;
@@ -19,11 +19,14 @@
             text-align: center;
         }
         
-        /* Estilos del Logo */
+        /* Estilos del Logo - Importante mantener altura fija para evitar saltos */
         .logo-institucion {
-            max-width: 150px;
-            height: auto;
+            max-width: 180px;
+            height: 70px; 
+            object-fit: contain;
             margin-bottom: 15px;
+            /* Suaviza el cambio de logo */
+            transition: opacity 0.3s ease-in-out; 
         }
 
         /* Panel de Configuración */
@@ -33,11 +36,17 @@
             border-radius: 12px;
             box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 320px;
+            max-width: 340px;
             margin-bottom: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+        }
+        .select-colegio{
+
+            background-color: #34495e;
+            color: white;
+            height: 5vh;
         }
 
         .grupo-input {
@@ -46,24 +55,47 @@
             align-items: center;
             font-weight: bold;
             color: #2c3e50;
+            text-align: left;
         }
 
-        .grupo-input input {
-            width: 80px;
+        .grupo-input input, .grupo-input select {
+            width: 130px;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 14px;
             text-align: center;
+            background-color: white;
+        }
+
+        /* Selector de colegios a ancho completo */
+        .select-colegio {
+            width: 100% !important;
+            margin-top: 5px;
+            text-align-last: center;
+                        border: none;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s; /* Centra el texto seleccionado en Android */
+        }
+
+        .divisor {
+            height: 1px;
+            background-color: #eee;
+            margin: 5px 0;
         }
 
         .btn-actualizar {
             background-color: #34495e;
             color: white;
             border: none;
-            padding: 10px;
+            padding: 12px;
             font-size: 16px;
-            border-radius: 6px;
+            font-weight: bold;
+            border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s;
         }
@@ -108,20 +140,20 @@
             color: white;
             border: none;
             padding: 15px 40px;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             border-radius: 30px;
             box-shadow: 0px 5px 10px rgba(0,0,0,0.2);
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 25px;
             transition: transform 0.1s, background-color 0.3s;
-            width: 80%;
-            max-width: 300px;
+            width: 85%;
+            max-width: 320px;
         }
 
         .btn-girar:active {
             background-color: #219150;
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
         .btn-girar:disabled {
@@ -131,28 +163,42 @@
         }
 
         #resultado {
-            margin-top: 20px;
-            font-size: 26px;
+            margin-top: 25px;
+            font-size: 28px;
             font-weight: bold;
             color: #e74c3c;
-            min-height: 35px;
+            min-height: 40px;
+            padding: 0 10px;
         }
     </style>
 </head>
 <body>
 
-    <!-- LOGO DE LA INSTITUCIÓN -->
-    <img src="logochico.png" alt="Logo de la Institución" class="logo-institucion" onerror="this.src='https://via.placeholder.com/150x60?text=Logo+Institución'">
+    <!-- LOGO CON SRC VACÍO INICIALMENTE -->
+    <img id="logoInstitucion" src="" alt="Cargando Logo..." class="logo-institucion">
 
     <!-- PANEL DE CONFIGURACIÓN -->
     <div class="panel-configuracion">
+        
+        <!-- SELECCIÓN DE COLEGIO -->
+        <div style="text-align: left;">
+            <label for="selectColegio" style="font-weight: bold; color: #2c3e50; font-size: 14px;">Colegio:</label>
+            <select id="selectColegio" class="select-colegio" onchange="cambiarLogo()">
+                <!-- REEMPLAZA ESTOS ENLACES DE PRUEBA POR LAS RUTAS REALES DE TUS LOGOS -->
+                <option value="logochico.png">San Nicolas</option>
+                <option value="logoJP.png">Juan Pablo II</option>
+            </select>
+        </div>
+
+        <div class="divisor"></div>
+
         <div class="grupo-input">
-            <label for="inputInicio">Primer alumno (Mín):</label>
-            <input type="number" id="inputInicio" value="1">
+            <label for="inputInicio">Nº Primer Alumno:</label>
+            <input type="number" id="inputInicio" value="1" min="1">
         </div>
         <div class="grupo-input">
-            <label for="inputFin">Último alumno (Máx):</label>
-            <input type="number" id="inputFin" value="40">
+            <label for="inputFin">Nº Último Alumno:</label>
+            <input type="number" id="inputFin" value="40" min="2">
         </div>
         <button class="btn-actualizar" onclick="generarRuleta()">Actualizar Ruleta</button>
     </div>
@@ -168,94 +214,113 @@
     <div id="resultado"></div>
 
     <script>
+        // --- VARIABLES GLOBALES ---
         const canvas = document.getElementById("ruleta");
         const ctx = canvas.getContext("2d");
         const btnGirar = document.getElementById("btnGirar");
         const divResultado = document.getElementById("resultado");
+        const logoImg = document.getElementById("logoInstitucion");
+        const colegioSelector = document.getElementById("selectColegio");
 
         let opciones = [];
         let anguloActual = 0;
-        
-        // Paleta de colores institucionales (se repetirán cíclicamente)
-        const colores = ["#3498db", "#e74c3c", "#f1c40f", "#2ecc71", "#9b59b6", "#e67e22"];
+        // Paleta de colores vibrantes para las porciones
+        const colores = ["#3498db", "#e74c3c", "#f1c40f", "#2ecc71", "#9b59b6", "#e67e22", "#1abc9c", "#e84393"];
 
-        // Función para poblar el arreglo y dibujar la ruleta
+        // --- FUNCIÓN PARA CAMBIAR EL LOGO ---
+        function cambiarLogo() {
+            // Asigna la RUTA guardada en el 'value' de la opción seleccionada al 'src' de la imagen
+            logoImg.src = colegioSelector.value;
+        }
+
+        // --- FUNCIONES DE LA RULETA ---
         function generarRuleta() {
             const min = parseInt(document.getElementById("inputInicio").value);
             const max = parseInt(document.getElementById("inputFin").value);
 
-            if (min >= max || isNaN(min) || isNaN(max)) {
-                alert("Por favor, ingresa un rango válido (el Máx debe ser mayor al Mín).");
+            // Validación básica de rango
+            if (min >= max || isNaN(min) || isNaN(max) || min < 0) {
+                alert("Por favor, ingresa un rango válido. El número final debe ser mayor al inicial.");
                 return;
             }
 
-            // Generar los números
+            // Generar el array de números participantes
             opciones = [];
             for (let i = min; i <= max; i++) {
                 opciones.push(i);
             }
 
-            // Reiniciar la posición de la ruleta antes de redibujar
+            // Reiniciar visualmente la ruleta (sin animación)
             canvas.style.transition = 'none';
             canvas.style.transform = `rotate(0deg)`;
             anguloActual = 0;
             
-            // Forzar actualización del navegador para que tome el cambio sin transición
+            // Forzar reflow para que el navegador note el cambio de style instantáneo
             void canvas.offsetWidth;
+            
+            // Reactivar la animación suave para los giros futuros
             canvas.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
 
             divResultado.innerText = "";
             dibujarRuleta();
         }
 
-        // Función para dibujar la ruleta en el canvas
         function dibujarRuleta() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             const centro = canvas.width / 2;
-            const radio = centro;
+            const radio = centro - 5; // Pequeño margen extra
             const totalOpciones = opciones.length;
             const arcoPorOpcion = (2 * Math.PI) / totalOpciones;
 
-            // Ajustar el tamaño del texto dependiendo de la cantidad de números
-            // Mientras más alumnos, más pequeño el texto para que entre en la porción
-            let tamañoFuente = Math.max(10, Math.floor(180 / totalOpciones)); 
-            if (tamañoFuente > 24) tamañoFuente = 24; // Límite máximo de tamaño
+            // Ajuste inteligente del tamaño de fuente según la cantidad de porciones
+            let tamañoFuente = Math.max(10, Math.floor(200 / totalOpciones)); 
+            if (tamañoFuente > 26) tamañoFuente = 26; // Límite máximo
 
             for (let i = 0; i < totalOpciones; i++) {
                 const anguloInicio = i * arcoPorOpcion; 
                 const anguloFin = (i + 1) * arcoPorOpcion;
 
-                // Dibujar la porción (slice)
+                // 1. Dibujar el "quesito" (porción)
                 ctx.beginPath();
                 ctx.moveTo(centro, centro);
                 ctx.arc(centro, centro, radio, anguloInicio, anguloFin);
-                ctx.fillStyle = colores[i % colores.length]; // Alternar colores
+                ctx.fillStyle = colores[i % colores.length]; // Ciclar colores
                 ctx.fill();
                 ctx.lineWidth = 1;
-                ctx.strokeStyle = "#ffffff"; // Borde blanco entre porciones
+                ctx.strokeStyle = "#ffffff"; // Borde blanco
                 ctx.stroke();
 
-                // Añadir el número
+                // 2. Dibujar el número
                 ctx.save();
                 ctx.translate(centro, centro);
-                // Rotar para apuntar al centro de la porción
+                // Rotar el lienzo para escribir centrado en la porción
                 ctx.rotate(anguloInicio + arcoPorOpcion / 2);
                 ctx.textAlign = "right";
                 ctx.fillStyle = "#ffffff";
                 ctx.font = `bold ${tamañoFuente}px Arial`;
                 
-                // Si hay demasiados alumnos, acercamos un poco el texto al borde
-                const margenTexto = totalOpciones > 30 ? 10 : 30;
-                ctx.fillText(opciones[i], radio - margenTexto, 5); 
+                // Ajustar la posición del texto según la cantidad total para que no se corte
+                const distanciaAlCentro = totalOpciones > 40 ? 8 : 25;
+                ctx.fillText(opciones[i], radio - distanciaAlCentro, tamañoFuente / 3); 
                 ctx.restore();
             }
+            
+            // Dibujar un círculo central decorativo
+            ctx.beginPath();
+            ctx.arc(centro, centro, 15, 0, 2 * Math.PI);
+            ctx.fillStyle = "#2c3e50";
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
         }
 
-        // Función para girar
         function girarRuleta() {
+            // Evitar girar si no hay opciones cargadas
             if (opciones.length === 0) return;
 
+            // Bloquear botón y limpiar resultado
             btnGirar.disabled = true;
             divResultado.style.color = "#2c3e50";
             divResultado.innerText = "Girando...";
@@ -263,33 +328,43 @@
             const totalOpciones = opciones.length;
             const gradosPorPorcion = 360 / totalOpciones;
 
-            // Elegir aleatoriamente entre 5 y 8 vueltas completas
-            const vueltasExtra = (Math.floor(Math.random() * 4) + 5) * 360;
+            // Calcular un giro aleatorio grande (entre 5 y 9 vueltas completas + extra)
+            const vueltasExtra = (Math.floor(Math.random() * 5) + 5) * 360;
             const gradosAleatorios = Math.floor(Math.random() * 360);
             
+            // Sumar al ángulo actual para que no "salte" hacia atrás al re-girar
             const giroTotal = anguloActual + vueltasExtra + gradosAleatorios;
             
+            // Aplicar rotación CSS (gatilla la transición suave)
             canvas.style.transform = `rotate(${giroTotal}deg)`;
-            anguloActual = giroTotal;
+            anguloActual = giroTotal; // Guardar posición final
 
-            // Calcular ganador
+            // Calcular y mostrar ganador tras esperar la animación (4s)
             setTimeout(() => {
-                // Matemática exacta para saber qué porción quedó debajo de la flecha
-                // (La flecha está ubicada a 270 grados en la circunferencia estándar)
+                // Matemática para determinar qué porción quedó bajo la flecha (arriba, 270deg)
                 const rotacionFinalModulo = giroTotal % 360;
+                // Compensar la posición de la flecha respecto al inicio del dibujo
                 const gradosFlecha = (360 - rotacionFinalModulo + 270) % 360;
                 const indiceGanador = Math.floor(gradosFlecha / gradosPorPorcion);
 
+                // Obtener el número real del array de opciones
                 const alumnoGanador = opciones[indiceGanador];
 
+                // Mostrar resultado destacado
                 divResultado.style.color = "#e74c3c";
-                divResultado.innerText = `¡The winner is N° ${alumnoGanador}!`;
+                divResultado.innerText = `¡Número Ganador: ${alumnoGanador}!`;
+                // Desbloquear botón
                 btnGirar.disabled = false;
             }, 4000); 
         }
 
-        // Generar ruleta inicial al cargar la página
-        window.onload = generarRuleta;
+        // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
+        window.onload = function() {
+            // 1. Cargar el logo del colegio seleccionado por defecto
+            cambiarLogo();
+            // 2. Dibujar la ruleta inicial (1-40)
+            generarRuleta();
+        };
     </script>
 </body>
 </html>
